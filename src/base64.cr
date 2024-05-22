@@ -99,9 +99,9 @@ module Base64
   # Base64.encode("Now is the time for all good coders\nto learn Crystal", STDOUT)
   # ```
   def encode(data, io : IO) : Int32
-    data = data.to_slice
-    encode_base64_chunked_internal(data.to_unsafe, data.size, CHARS_STD.to_unsafe, newlines: true, pad: true) do |buf|
-      io.write(buf)
+    slice = data.to_slice
+    encode_base64_chunked_internal(slice.to_unsafe, slice.size, CHARS_STD.to_unsafe, newlines: true, pad: true) do |buf|
+      io.write_string(buf)
     end.tap { io.flush }
   end
 
@@ -112,9 +112,9 @@ module Base64
   # Base64.strict_encode("Now is the time for all good coders\nto learn Crystal", STDOUT)
   # ```
   def strict_encode(data, io : IO) : Int32
-    data = data.to_slice
-    encode_base64_chunked_internal(data.to_unsafe, data.size, CHARS_STD.to_unsafe, pad: true) do |buf|
-      io.write(buf)
+    slice = data.to_slice
+    encode_base64_chunked_internal(slice.to_unsafe, slice.size, CHARS_STD.to_unsafe, pad: true) do |buf|
+      io.write_string(buf)
     end.tap { io.flush }
   end
 
@@ -124,9 +124,9 @@ module Base64
   #
   # The alphabet uses `'-'` instead of `'+'` and `'_'` instead of `'/'`.
   def urlsafe_encode(data, io : IO, padding = true) : Int32
-    data = data.to_slice
-    encode_base64_chunked_internal(data.to_unsafe, data.size, CHARS_SAFE.to_unsafe, pad: padding) do |buf|
-      io.write(buf)
+    slice = data.to_slice
+    encode_base64_chunked_internal(slice.to_unsafe, slice.size, CHARS_SAFE.to_unsafe, pad: padding) do |buf|
+      io.write_string(buf)
     end.tap { io.flush }
   end
 
@@ -213,7 +213,7 @@ module Base64
 
       written = encode_base64_buffer_internal(input_buffer.to_unsafe, available_bytes &- unprocessable_bytes, output_buffer.to_unsafe, chars, newlines: newlines, pad: pad)
       total_written += written
-      output.write(output_buffer.to_slice[0, written])
+      output.write_string(output_buffer.to_slice[0, written])
 
       break if read_bytes == 0
 
@@ -235,10 +235,9 @@ module Base64
     # Make sure output's size is a multiple of (LINE_SIZE + 1) and 4,
     # so we never cut-off pairs/lines in the middle of the output.
     output = uninitialized UInt8[IO::DEFAULT_BUFFER_SIZE]
-    output_size = IO::DEFAULT_BUFFER_SIZE // 244 * 244
 
     while input_size > 0
-      process_bytes = Math.min(output_size, input_size)
+      process_bytes = Math.min(STREAM_MAX_INPUT_BUFFER_SIZE, input_size)
       written_bytes = encode_base64_buffer_internal(input, process_bytes, output.to_unsafe, chars, newlines: newlines, pad: pad)
 
       input += process_bytes
@@ -291,20 +290,9 @@ module Base64
   # *input* must have at least `pairs * 3` bytes available to process,
   # while *output* must have at least `pairs * 4` bytes of storage available.
   private def encode_base64_full_pairs_internal(input : UInt8*, output : UInt8*, pairs : Int32, chars : UInt8*) : Nil
-    (pairs &- 1).times do
+    pairs.times do
       # FIXME: This u32 access is unaligned and may crash
       # the program on weak-memory architectures (ex. RISC-V).
-      n = input.as(UInt32*).value.byte_swap
-      output[0] = chars[(n >> 26) & 63]
-      output[1] = chars[(n >> 20) & 63]
-      output[2] = chars[(n >> 14) & 63]
-      output[3] = chars[(n >> 8) & 63]
-
-      input += 3
-      output += 4
-    end
-
-    if pairs > 0
       in0 = input[0]
       output[0] = chars[in0 >> 2]
       in1 = input[1]
@@ -312,6 +300,9 @@ module Base64
       in2 = input[2]
       output[2] = chars[(in1 << 4 >> 2) | (in2 >> 6)]
       output[3] = chars[in2 << 2 >> 2]
+
+      input += 3
+      output += 4
     end
   end
 
