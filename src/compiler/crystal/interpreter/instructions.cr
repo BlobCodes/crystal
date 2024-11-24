@@ -1166,7 +1166,7 @@ require "./repl"
       },
       # >>> Class vars (3)
 
-      # <<< Stack manipulation (5)
+      # <<< Stack manipulation (6)
       pop: {
         operands:   [size : Int32],
         code:       stack_shrink_by(size),
@@ -1196,7 +1196,7 @@ require "./repl"
         push:       true,
         code:       stack - size,
       },
-      # >>> Stack manipulation (5)
+      # >>> Stack manipulation (6)
 
       # <<< Jumps (3)
       branch_if: {
@@ -1233,7 +1233,7 @@ require "./repl"
       },
       # >>> Pointerof (3)
 
-      # <<< Calls (5)
+      # <<< Calls (7)
       call: {
         operands:    [compiled_def : CompiledDef],
         code:        call(compiled_def),
@@ -1268,7 +1268,7 @@ require "./repl"
         operands:   [size : Int32],
         code:       break_block(size),
       },
-      # >>> Calls (4)
+      # >>> Calls (7)
 
       # <<< Classes (2)
       allocate_class: {
@@ -1305,7 +1305,7 @@ require "./repl"
           context.type_id(type.metaclass)
         end,
       },
-      # >>> Allocate (2)
+      # >>> Classes (3)
 
       # <<< Unions (7)
       put_in_union: {
@@ -1492,7 +1492,7 @@ require "./repl"
       },
       # >>> Symbol (1)
 
-      # <<< Proc (1)
+      # <<< Proc (3)
       proc_call: {
         pop_values: [compiled_def : CompiledDef, closure_data : Pointer(Void)],
         push:       true,
@@ -1535,9 +1535,9 @@ require "./repl"
           {Pointer(Void).new(compiled_def.object_id), Pointer(Void).null}
         end
       },
-      # >>> Proc (1)
+      # >>> Proc (3)
 
-      # <<< Atomic (3)
+      # <<< Atomic (4)
       load_atomic: {
         operands:   [element_size : Int32],
         pop_values: [ptr : Pointer(UInt8), ordering : Symbol, volatile : Bool],
@@ -1635,7 +1635,7 @@ require "./repl"
           end
         end,
       },
-      # >>> Proc (3)
+      # >>> Atomic (4)
 
       # <<< ARGV (2)
       argc_unsafe: {
