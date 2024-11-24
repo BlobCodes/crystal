@@ -455,11 +455,6 @@ class Crystal::Repl::Context
   end
 
   def align(size : Int32) : Int32
-    rem = size.remainder(8)
-    if rem == 0
-      size
-    else
-      size + (8 - rem)
-    end
+    (size &+ 7) & -8
   end
 end
