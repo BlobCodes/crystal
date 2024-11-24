@@ -1124,7 +1124,7 @@ require "./repl"
           # --|_|--
           (stack - total_size).move_from(stack - total_size + offset, size)
           stack_shrink_by(total_size - size)
-          stack_grow_by(align(size) - size)
+          stack_grow_by_dirty(size & 7)
         end,
       },
       # >>> Instance vars (4)
@@ -1186,6 +1186,10 @@ require "./repl"
       push_zeros: {
         operands:   [amount : Int32],
         code:       stack_grow_by(amount),
+      },
+      push_dirty: {
+        operands:   [amount : Int32],
+        code:       stack_grow_by_dirty(amount),
       },
       put_stack_top_pointer: {
         operands:   [size : Int32],
@@ -1308,7 +1312,7 @@ require "./repl"
         operands:   [type_id : Int32, from_size : Int32, union_size : Int32],
         code:       begin
           tmp_stack = stack
-          stack_grow_by(union_size - from_size)
+          stack_grow_by_dirty(union_size - from_size)
           (tmp_stack - from_size).move_to(tmp_stack - from_size + type_id_bytesize, from_size)
           (tmp_stack - from_size).as(Int64*).value = type_id.to_i64!
         end,
@@ -1331,7 +1335,7 @@ require "./repl"
             end
 
           tmp_stack = stack
-          stack_grow_by(union_size - from_size)
+          stack_grow_by_dirty(union_size - from_size)
           (tmp_stack - from_size).copy_to(tmp_stack - from_size + type_id_bytesize, from_size)
           (tmp_stack - from_size).as(Int64*).value = type_id.to_i64!
         end,
@@ -1355,7 +1359,7 @@ require "./repl"
 
             # Fill with zeros until we reach union_size
             remaining = union_size - sizeof(Pointer(Void)) - type_id_bytesize
-            stack_grow_by(remaining) if remaining > 0
+            stack_grow_by_dirty(remaining) if remaining > 0
           end
         end,
       },

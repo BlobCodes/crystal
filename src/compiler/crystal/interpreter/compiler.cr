@@ -407,7 +407,7 @@ class Crystal::Repl::Compiler < Crystal::Visitor
 
       difference = next_offset - (current_offset + aligned_size)
       if difference > 0
-        push_zeros(difference, node: nil)
+        push_dirty(difference, node: nil)
       elsif difference < 0
         pop(-difference, node: nil)
       end
@@ -443,7 +443,7 @@ class Crystal::Repl::Compiler < Crystal::Visitor
 
       difference = next_offset - (current_offset + aligned_size)
       if difference > 0
-        push_zeros(difference, node: nil)
+        push_dirty(difference, node: nil)
       elsif difference < 0
         pop(-difference, node: nil)
       end

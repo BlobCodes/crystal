@@ -655,7 +655,7 @@ class Crystal::Repl::Interpreter
       (stack - %offset).move_from(stack, %return_bytesize)
       stack = stack - %offset + %return_bytesize
 
-      stack_grow_by(%aligned_return_bytesize - %return_bytesize)
+      stack_grow_by_dirty(%aligned_return_bytesize - %return_bytesize)
     end
   end
 
@@ -1012,7 +1012,7 @@ class Crystal::Repl::Interpreter
     stack.copy_from(pointerof(%temp).as(UInt8*), %size)
     %aligned_size = align(%size)
     stack += %size
-    stack_grow_by(%aligned_size - %size)
+    stack_grow_by_dirty(%aligned_size - %size)
   end
 
   private macro stack_copy_to(pointer, size)
@@ -1032,7 +1032,7 @@ class Crystal::Repl::Interpreter
 
     stack.copy_from({{pointer}}, %size)
     stack += %size
-    stack_grow_by(%aligned_size - %size)
+    stack_grow_by_dirty(%aligned_size - %size)
   end
 
   private macro stack_grow_by(size)
@@ -1040,13 +1040,15 @@ class Crystal::Repl::Interpreter
     stack += {{size}}
   end
 
+  private macro stack_grow_by_dirty(size)
+    stack += {{size}}
+  end
+
   private macro stack_shrink_by(size)
     stack -= {{size}}
-    stack_clear({{size}})
   end
 
   private macro stack_clear(size)
-    # TODO: clearing the stack after every step is very slow!
     stack.clear({{size}})
   end
 

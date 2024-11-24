@@ -79,7 +79,7 @@ class Crystal::Repl::Compiler
     difference = aligned_sizeof_type(to) - aligned_sizeof_type(from)
 
     if difference > 0
-      push_zeros(difference, node: nil)
+      push_dirty(difference, node: nil)
     end
 
     # If needs_union_value_cast was true, we have a bunch of
@@ -135,7 +135,7 @@ class Crystal::Repl::Compiler
 
     # Then fill out the rest of the union
     remaining = aligned_sizeof_type(to) - 16
-    push_zeros remaining, node: nil if remaining > 0
+    push_dirty remaining, node: nil if remaining > 0
   end
 
   private def upcast_distinct(node : ASTNode, from : ReferenceUnionType | NilableReferenceUnionType | VirtualType, to : MixedUnionType)
@@ -297,7 +297,7 @@ class Crystal::Repl::Compiler
 
       difference = next_to_offset - to_element_offset - aligned_sizeof_type(to_element_type)
       if difference > 0
-        push_zeros(difference, node: nil)
+        push_dirty(difference, node: nil)
       elsif difference < 0
         pop(-difference, node: nil)
       end
@@ -349,7 +349,7 @@ class Crystal::Repl::Compiler
 
       difference = next_to_offset - to_element_offset - aligned_sizeof_type(to_element_type)
       if difference > 0
-        push_zeros(difference, node: nil)
+        push_dirty(difference, node: nil)
       elsif difference < 0
         pop(-difference, node: nil)
       end
