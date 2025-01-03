@@ -8,7 +8,6 @@
 # appear in the API docs.
 
 # This list requires ordered statements
-require "crystal/once"
 require "lib_c"
 require "macros"
 require "object"
@@ -21,6 +20,7 @@ require "indexable"
 require "string"
 require "number"
 require "primitives"
+require "crystal/once"
 
 # Alpha-sorted list
 require "annotations"
