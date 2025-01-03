@@ -1,3 +1,6 @@
+require "./pointer_linked_list"
+require "./spin_lock"
+
 # This file defines the functions `__crystal_once_init` and `__crystal_once` expected
 # by the compiler. `__crystal_once` is called each time a constant or class variable
 # has to be initialized and is its responsibility to verify the initializer is executed
@@ -18,10 +21,11 @@ module Crystal
   struct OnceOp
     include PointerLinkedList::Node
 
+    property fiber : Fiber
     property waiting : OnceWaiter* = Pointer(OnceWaiter).null
     property flag : Bool*
 
-    def initialize(@flag)
+    def initialize(@fiber, @flag)
     end
   end
 
@@ -29,9 +33,14 @@ module Crystal
   @@once_lock = uninitialized Crystal::SpinLock
 
   # :nodoc:
-  class_property once_ops
+  def self.once_ops
+    pointerof(@@once_ops)
+  end
+
   # :nodoc:
-  class_property once_lock
+  def self.once_lock
+    pointerof(@@once_lock)
+  end
 end
 
 # :nodoc:
@@ -62,8 +71,8 @@ end
 # Since we only need the once mutex on the first access of any const variable,
 # but don't need it all the other times, this reduces the register pressure when accessing a const.
 fun __crystal_once_init : Void*
-  Crystal.once_lock = Crystal::SpinLock.new
-  Crystal.once_ops = Crystal::PointerLinkedList(Crystal::OnceOp).new
+  Crystal.once_lock.value = Crystal::SpinLock.new
+  Crystal.once_ops.value = Crystal::PointerLinkedList(Crystal::OnceOp).new
 
   Pointer(Void).null
 end
@@ -92,54 +101,52 @@ end
 @[CallConvention("Cold")]
 fun __crystal_once_exec(flag : Bool*, initializer : Void*) : Void
   this_op = uninitialized Crystal::OnceOp
+  this_fiber = Fiber.current
 
-  Crystal.once_lock.lock
+  Crystal.once_lock.value.lock
   begin
     Atomic::Ops.fence(:acquire, singlethread: false)
-    return if flag.value
+    if flag.value
+      Crystal.once_lock.value.unlock
+      return
+    end
 
-    Crystal.once_ops.each do |op|
+    Crystal.once_ops.value.each do |op|
       next unless op.value.flag == flag
 
       # global is already being initialized
       # check for recursion
-      current_waiting = op.value.waiting
-      this_fiber = Fiber.current
-      until current_waiting.null?
-        if this_fiber == current_waiting.value.fiber
-          Atomic::Ops.fence(:release, singlethread: false)
-          Crystal.once_lock.unlock
-
-          raise "Recursion while initializing class variables and/or constants"
-        end
-        current_waiting = current_waiting.value.next_entry
+      if op.value.fiber == this_fiber
+        Atomic::Ops.fence(:release, singlethread: false)
+        Crystal.once_lock.value.unlock
+        raise "Recursion while initializing class variables and/or constants"
       end
 
       # no recursion detected
       # wait for the initializing fiber to complete
-      waiter = Crystal::OnceWaiter.new(Fiber.current, op.value.waiting)
+      waiter = Crystal::OnceWaiter.new(this_fiber, op.value.waiting)
       op.value.waiting = pointerof(waiter)
 
       Atomic::Ops.fence(:release, singlethread: false)
-      Crystal.once_lock.unlock
+      Crystal.once_lock.value.unlock
       Fiber.suspend
       return
     end
 
     # This variable is not yet being initialized
-    this_op = Crystal::OnceOp.new(flag)
-    Crystal.once_ops.push(pointerof(this_op))
+    this_op = Crystal::OnceOp.new(this_fiber, flag)
+    Crystal.once_ops.value.push(pointerof(this_op))
     Atomic::Ops.fence(:release, singlethread: false)
-    Crystal.once_lock.unlock
+    Crystal.once_lock.value.unlock
   end
 
   Proc(Nil).new(initializer, Pointer(Void).null).call
 
   # Mark this variable as initialized
-  Crystal.once_lock.sync do
+  Crystal.once_lock.value.sync do
     Atomic::Ops.fence(:acquire, singlethread: false)
     flag.value = true
-    Crystal.once_ops.delete(pointerof(this_op))
+    Crystal.once_ops.value.delete(pointerof(this_op))
     Atomic::Ops.fence(:release, singlethread: false)
   end
 
