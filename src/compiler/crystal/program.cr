@@ -262,6 +262,7 @@ module Crystal
       # Built-in annotations
       types["AlwaysInline"] = @always_inline_annotation = AnnotationType.new self, self, "AlwaysInline"
       types["CallConvention"] = @call_convention_annotation = AnnotationType.new self, self, "CallConvention"
+      types["Dirty"] = @dirty_annotation = AnnotationType.new self, self, "Dirty"
       types["Extern"] = @extern_annotation = AnnotationType.new self, self, "Extern"
       types["Flags"] = @flags_annotation = AnnotationType.new self, self, "Flags"
       types["Link"] = @link_annotation = AnnotationType.new self, self, "Link"
@@ -558,7 +559,7 @@ module Crystal
                      uint8 uint16 uint32 uint64 uint128 float float32 float64 string symbol pointer enumerable indexable
                      array static_array exception tuple named_tuple proc union enum range slice regex crystal
                      packed_annotation thread_local_annotation no_inline_annotation
-                     always_inline_annotation naked_annotation returns_twice_annotation
+                     always_inline_annotation dirty_annotation naked_annotation returns_twice_annotation
                      raises_annotation primitive_annotation call_convention_annotation
                      flags_annotation link_annotation extern_annotation deprecated_annotation experimental_annotation) %}
       def {{name.id}}

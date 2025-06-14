@@ -2267,7 +2267,9 @@ module Crystal
     end
 
     def pre_initialize_aggregate(type, struct_type, ptr)
-      memset ptr, int8(0), size_t(struct_type.size)
+      unless type.dirty?
+        memset ptr, int8(0), size_t(struct_type.size)
+      end
       run_instance_vars_initializers(type, type, ptr)
 
       unless type.struct?
@@ -2306,6 +2308,22 @@ module Crystal
 
       initializers.each do |init|
         ivar = real_type.lookup_instance_var(init.name)
+
+        # Since non-dirty types are mem-cleared
+        # before assigning default ivar values,
+        # we can remove any assigns leading to zeroed memory.
+        unless real_type.dirty?
+          case val = init.value
+          when NilLiteral
+            next if ivar.type.reference_like?
+          when BoolLiteral
+            next if !val.value && ivar.type != @program.union
+          when CharLiteral
+            next if val.value == '\0' && ivar.type != @program.union
+          when NumberLiteral
+            next if val.value == "0" && !val.kind.float? && ivar.type != @program.union
+          end
+        end
 
         with_cloned_context do
           # Instance var initializers must run with "self"

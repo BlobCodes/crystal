@@ -227,6 +227,8 @@ class Crystal::TopLevelVisitor < Crystal::SemanticVisitor
           type.extern = true
         when @program.packed_annotation
           type.packed = true
+        when @program.dirty_annotation
+          type.dirty = true
         else
           # not a built-in annotation
         end
